@@ -10,7 +10,7 @@ import { LibraryScreen } from './src/screens/LibraryScreen';
 import { NowPlaying } from './src/screens/NowPlaying';
 import { SearchScreen } from './src/screens/SearchScreen';
 import { LibraryProvider } from './src/state/library';
-import { PlayerProvider, usePlayer } from './src/state/player';
+import { PlayerProvider } from './src/state/player';
 import { colors } from './src/theme';
 import { Collection } from './src/types';
 
@@ -27,11 +27,6 @@ function Shell() {
   // Each tab keeps its own stack of opened collections.
   const [stacks, setStacks] = useState<Record<Tab, Collection[]>>({ home: [], search: [], library: [] });
   const [nowPlaying, setNowPlaying] = useState(false);
-
-  const { videoRequest } = usePlayer();
-  useEffect(() => {
-    if (videoRequest > 0) setNowPlaying(true);
-  }, [videoRequest]);
 
   const stack = stacks[tab];
   const open = useCallback((c: Collection) => setStacks((s) => ({ ...s, [tab]: [...s[tab], c] })), [tab]);

@@ -1,4 +1,4 @@
-export type Source = 'audius' | 'archive' | 'radio' | 'youtube';
+export type Source = 'audius' | 'archive' | 'radio' | 'preview';
 
 export interface Track {
   /** Globally unique, prefixed by source. */
@@ -19,11 +19,11 @@ export interface Track {
   artistArtwork?: string;
   /** A never-ending broadcast: no duration, no seeking. */
   isLive?: boolean;
-  /** YouTube video id; these play in YouTube's own player rather than the audio engine. */
-  videoId?: string;
+  /** A 30-second sample of a commercial release. */
+  isPreview?: boolean;
 }
 
-export type CollectionKind = 'playlist' | 'concert' | 'genre' | 'era' | 'artist' | 'chart' | 'radio' | 'youtube' | 'liked' | 'recent';
+export type CollectionKind = 'playlist' | 'concert' | 'genre' | 'era' | 'artist' | 'chart' | 'radio' | 'preview' | 'liked' | 'recent';
 
 export interface Collection {
   id: string;
@@ -31,7 +31,7 @@ export interface Collection {
   title: string;
   subtitle: string;
   artwork?: string;
-  /** Kind-specific lookup value: playlist id, archive id, genre name, "1910-1919", artist id, chart name, radio tag or "country:US", YouTube region. */
+  /** Kind-specific lookup value: playlist id, archive id, genre name, "1910-1919", artist id, chart name, radio tag or "country:US", preview chart "US" or "US:18". */
   ref: string;
   icon?: string;
   /** Artist name to find a photo for when there is no artwork. */

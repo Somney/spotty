@@ -48,7 +48,7 @@ export function Artwork({ uri, size, rounded = radius.sm, icon = 'musical-note',
 /** Which placeholder glyph and photo lookup suit a track. */
 export function trackArt(t: { source: string; artist: string }) {
   return {
-    icon: t.source === 'youtube' ? 'logo-youtube' : t.source === 'radio' ? 'radio' : t.source === 'archive' ? 'disc' : 'musical-note',
+    icon: t.source === 'radio' ? 'radio' : t.source === 'archive' ? 'disc' : 'musical-note',
     lookup: t.source === 'archive' ? t.artist : undefined,
   };
 }

@@ -49,7 +49,7 @@ export function StateNote({ state, empty }: { state: Loadable<unknown[]>; empty?
   if (state.error && !state.data) {
     return (
       <View style={styles.note}>
-        <Text style={styles.noteText}>Couldn't load this. {state.error}.</Text>
+        <Text style={styles.noteText}>{state.error}.</Text>
         <Pressable onPress={state.reload} hitSlop={10} accessibilityRole="button">
           <Text style={styles.retryText}>Try Again</Text>
         </Pressable>

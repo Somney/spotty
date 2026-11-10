@@ -10,9 +10,8 @@ export function MiniPlayer({ onOpen }: { onOpen: () => void }) {
   const status = usePlayback();
   if (!current) return null;
 
-  const video = !!current.videoId;
-  const playing = !video && status.playing && !error;
-  const busy = !video && (loading || (status.isBuffering && !status.playing && !error));
+  const playing = status.playing && !error;
+  const busy = loading || (status.isBuffering && !status.playing && !error);
 
   return (
     <Pressable onPress={onOpen} style={styles.wrap} accessibilityRole="button" accessibilityLabel="Open now playing">

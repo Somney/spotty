@@ -37,7 +37,7 @@ export const TrackRow = React.memo(function TrackRow({ track, active, index, onP
             {meta}
           </Text>
         </View>
-        {track.isLive ? <Text style={styles.live}>LIVE</Text> : track.duration ? <Text style={styles.duration}>{formatTime(track.duration)}</Text> : null}
+        {track.isLive ? <Text style={styles.live}>LIVE</Text> : track.isPreview ? <Text style={styles.preview}>PREVIEW</Text> : track.duration ? <Text style={styles.duration}>{formatTime(track.duration)}</Text> : null}
         <Pressable
           onPress={() => toggleLike(track)}
           hitSlop={12}
@@ -71,5 +71,6 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 16, letterSpacing: -0.2 },
   meta: { color: colors.sub, fontSize: 14, marginTop: 2 },
   duration: { color: colors.sub, fontSize: 13, fontVariant: ['tabular-nums'] },
+  preview: { color: colors.sub, fontSize: 10, fontWeight: '700', letterSpacing: 0.6 },
   live: { color: colors.danger, fontSize: 11, fontWeight: '700', letterSpacing: 0.6 },
 });

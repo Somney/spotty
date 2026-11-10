@@ -1,7 +1,7 @@
 import * as archive from './api/archive';
 import * as audius from './api/audius';
 import * as radio from './api/radio';
-import * as youtube from './api/youtube';
+import * as charts from './api/charts';
 import { Collection, Track } from './types';
 
 /** Tracks for the collections that are fetched over the network. */
@@ -15,12 +15,13 @@ export function loadCollection(c: Collection): Promise<Track[]> {
       return audius.artistTracks(c.ref);
     case 'chart':
       if (c.ref === 'trending') return audius.trending({ time: 'week', limit: 50 });
+      if (c.ref === 'month') return audius.trending({ time: 'month', limit: 50 });
       if (c.ref === 'allTime') return audius.trending({ time: 'allTime', limit: 50 });
       return c.ref === 'underground' ? audius.underground(50) : audius.mostShared(50);
     case 'radio':
       return c.ref.startsWith('country:') ? radio.topInCountry(c.ref.slice(8), 40) : radio.stations(c.ref, 40);
-    case 'youtube':
-      return youtube.popular(c.ref, 50);
+    case 'preview':
+      return charts.top(c.ref, 50);
     case 'genre':
       return audius.trending({ genre: c.ref, time: 'month', limit: 50 });
     case 'era': {
@@ -57,3 +58,4 @@ export const UNDERGROUND: Collection = { id: 'chart:underground', kind: 'chart',
 export const MOST_SHARED: Collection = { id: 'chart:most-shared', kind: 'chart', title: 'Most Shared', subtitle: 'What people are passing around', ref: 'most-shared', icon: 'share-social' };
 export const TOP_SONGS: Collection = { id: 'chart:trending', kind: 'chart', title: 'Top Songs', subtitle: 'This week', ref: 'trending', icon: 'trending-up' };
 export const ALL_TIME: Collection = { id: 'chart:allTime', kind: 'chart', title: 'All-Time Favourites', subtitle: 'The most played ever', ref: 'allTime', icon: 'star' };
+export const TOP_MONTH: Collection = { id: 'chart:month', kind: 'chart', title: 'Top This Month', subtitle: 'Independent artists', ref: 'month', icon: 'calendar' };
