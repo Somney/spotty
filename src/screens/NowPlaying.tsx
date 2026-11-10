@@ -8,9 +8,11 @@ import { SeekBar } from '../components/SeekBar';
 import { TrackRow } from '../components/TrackRow';
 import { useLibrary } from '../state/library';
 import { usePlayback, usePlayer } from '../state/player';
+import * as audius from '../api/audius';
 import { colors, gradientFor, radius, space } from '../theme';
+import { Collection } from '../types';
 
-export function NowPlaying({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function NowPlaying({ visible, onClose, onOpen }: { visible: boolean; onClose: () => void; onOpen: (c: Collection) => void }) {
   const p = usePlayer();
   const status = usePlayback();
   const { isLiked, toggleLike } = useLibrary();
@@ -52,9 +54,22 @@ export function NowPlaying({ visible, onClose }: { visible: boolean; onClose: ()
                 <Text style={styles.title} numberOfLines={2}>
                   {track.title}
                 </Text>
-                <Text style={styles.artist} numberOfLines={1}>
-                  {track.artist}
-                </Text>
+                {track.artistId ? (
+                  <Pressable
+                    onPress={() => onOpen(audius.artistCollection({ id: track.artistId!, name: track.artist, artwork: track.artistArtwork }))}
+                    hitSlop={8}
+                    accessibilityRole="link"
+                    accessibilityLabel={`Open artist ${track.artist}`}
+                  >
+                    <Text style={styles.artist} numberOfLines={1}>
+                      {track.artist} ›
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <Text style={styles.artist} numberOfLines={1}>
+                    {track.artist}
+                  </Text>
+                )}
               </View>
               <Pressable
                 onPress={() => toggleLike(track)}

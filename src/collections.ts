@@ -9,6 +9,10 @@ export function loadCollection(c: Collection): Promise<Track[]> {
       return audius.playlistTracks(c.ref);
     case 'concert':
       return archive.itemTracks(c.ref);
+    case 'artist':
+      return audius.artistTracks(c.ref);
+    case 'chart':
+      return c.ref === 'underground' ? audius.underground(50) : audius.mostShared(50);
     case 'genre':
       return audius.trending({ genre: c.ref, time: 'month', limit: 50 });
     case 'era': {
@@ -40,3 +44,6 @@ export const eraCollection = (era: { label: string; ref: string }): Collection =
 
 export const LIKED: Collection = { id: 'liked', kind: 'liked', title: 'Liked songs', subtitle: 'Saved on this device', ref: '', icon: 'heart' };
 export const RECENT: Collection = { id: 'recent', kind: 'recent', title: 'Recently played', subtitle: 'Your listening history', ref: '', icon: 'time' };
+
+export const UNDERGROUND: Collection = { id: 'chart:underground', kind: 'chart', title: 'Fresh & underground', subtitle: 'New artists on the rise', ref: 'underground', icon: 'rocket' };
+export const MOST_SHARED: Collection = { id: 'chart:most-shared', kind: 'chart', title: 'Most shared', subtitle: 'What people are passing around', ref: 'most-shared', icon: 'share-social' };

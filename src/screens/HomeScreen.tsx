@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as archive from '../api/archive';
 import * as audius from '../api/audius';
+import { Ionicons } from '@expo/vector-icons';
 import { eraCollection } from '../collections';
 import { Shelf, ShelfItem, SectionTitle, StateNote } from '../components/Shelf';
 import { TrackRow } from '../components/TrackRow';
@@ -23,6 +24,21 @@ export function HomeScreen({ onOpen }: { onOpen: (c: Collection) => void }) {
 
   const g = genre === 'All' ? undefined : genre;
   const trending = useAsync(() => audius.trending({ genre: g, time: 'week', limit: 30 }), `trend:${genre}`);
+  const fresh = useAsync(() => audius.underground(20), 'underground');
+  const shared = useAsync(() => audius.mostShared(20), 'shared');
+  const [rolling, setRolling] = useState(false);
+  const surprise = async () => {
+    if (rolling) return;
+    setRolling(true);
+    try {
+      const picks = await audius.lucky(25);
+      if (picks.length) player.playQueue(picks, 0, { shuffle: false });
+    } catch {
+      // The shelves below show their own errors; nothing more to do here.
+    } finally {
+      setRolling(false);
+    }
+  };
   const playlists = useAsync(() => audius.trendingPlaylists(12), 'playlists');
   const classics = useAsync(() => audius.trending({ time: 'allTime', limit: 20 }), 'allTime');
   const vault = useAsync(() => archive.vintage({ rows: 20 }), 'vault');
@@ -48,6 +64,11 @@ export function HomeScreen({ onOpen }: { onOpen: (c: Collection) => void }) {
         <Text style={styles.greeting}>{greeting()}</Text>
         <Text style={styles.tagline}>New releases and century-old records. No ads, ever.</Text>
       </View>
+
+      <Pressable onPress={surprise} style={({ pressed }) => [styles.surprise, pressed && { opacity: 0.8 }]} accessibilityRole="button">
+        <Ionicons name={rolling ? 'hourglass' : 'dice'} size={20} color={colors.accentInk} />
+        <Text style={styles.surpriseText}>{rolling ? 'Finding something…' : 'Surprise me'}</Text>
+      </Pressable>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         {CHIPS.map((c) => {
@@ -87,6 +108,10 @@ export function HomeScreen({ onOpen }: { onOpen: (c: Collection) => void }) {
         <Shelf title="More to discover" items={trackItems(trending.data).slice(6)} state={trending} />
       ) : null}
 
+      <Shelf title="Fresh & underground" caption="Released in the last few days" items={trackItems(fresh.data)} state={fresh} />
+
+      <Shelf title="Most shared" caption="What people are passing around" items={trackItems(shared.data)} state={shared} />
+
       <Shelf title="Playlists" caption="Hand-picked sets from the community" items={collectionItems(playlists.data, 'albums')} state={playlists} />
 
       <Shelf
@@ -115,6 +140,8 @@ const styles = StyleSheet.create({
   hero: { paddingHorizontal: space.lg, paddingTop: space.lg },
   greeting: { color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
   tagline: { color: colors.sub, fontSize: 14, marginTop: 4 },
+  surprise: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm, marginHorizontal: space.lg, marginTop: space.lg, height: 46, borderRadius: radius.pill, backgroundColor: colors.accent },
+  surpriseText: { color: colors.accentInk, fontWeight: '800', fontSize: 15 },
   chips: { paddingHorizontal: space.lg, gap: space.sm, marginTop: space.lg },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: colors.surfaceHi },
   chipOn: { backgroundColor: colors.accent },

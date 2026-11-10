@@ -14,9 +14,12 @@ export interface Track {
   streamUrl?: string;
   /** Internet Archive item identifier, when the stream still needs resolving. */
   archiveId?: string;
+  /** Audius user id and picture, for opening the artist's page. */
+  artistId?: string;
+  artistArtwork?: string;
 }
 
-export type CollectionKind = 'playlist' | 'concert' | 'genre' | 'era' | 'liked' | 'recent';
+export type CollectionKind = 'playlist' | 'concert' | 'genre' | 'era' | 'artist' | 'chart' | 'liked' | 'recent';
 
 export interface Collection {
   id: string;
@@ -24,7 +27,7 @@ export interface Collection {
   title: string;
   subtitle: string;
   artwork?: string;
-  /** Kind-specific lookup value: playlist id, archive id, genre name, "1910-1919". */
+  /** Kind-specific lookup value: playlist id, archive id, genre name, "1910-1919", artist id, chart name. */
   ref: string;
   icon?: string;
 }

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as archive from '../api/archive';
 import * as audius from '../api/audius';
-import { eraCollection, genreCollection } from '../collections';
+import { MOST_SHARED, UNDERGROUND, eraCollection, genreCollection } from '../collections';
 import { SectionTitle, Shelf, StateNote } from '../components/Shelf';
 import { TrackRow } from '../components/TrackRow';
 import { usePlayer } from '../state/player';
@@ -17,6 +17,7 @@ function Results({ query, onOpen }: { query: string; onOpen: (c: Collection) => 
   const songs = useAsync(() => audius.searchTracks(query), `s:${query}`);
   const old = useAsync(() => archive.vintage({ query, rows: 15 }), `v:${query}`);
   const shows = useAsync(() => archive.concerts({ query, rows: 10 }), `c:${query}`);
+  const artists = useAsync(() => audius.searchArtists(query), `a:${query}`);
   const lists = useAsync(() => audius.searchPlaylists(query), `p:${query}`);
 
   const rows = (state: typeof songs, limit: number) =>
@@ -42,6 +43,7 @@ function Results({ query, onOpen }: { query: string; onOpen: (c: Collection) => 
         <SectionTitle title="Songs" />
         {rows(songs, 12)}
       </View>
+      {artists.data?.length !== 0 ? <Shelf title="Artists" items={cards(artists.data, 'person')} state={artists} /> : null}
       <View style={{ marginTop: space.xl }}>
         <SectionTitle title="From the vault" caption="78rpm records, 1900–1925" />
         {rows(old, 8)}
@@ -61,7 +63,7 @@ export function SearchScreen({ onOpen }: { onOpen: (c: Collection) => void }) {
     return () => clearTimeout(t);
   }, [text]);
 
-  const tiles: Collection[] = [...archive.ERAS.map(eraCollection), ...audius.GENRES.map(genreCollection)];
+  const tiles: Collection[] = [UNDERGROUND, MOST_SHARED, ...archive.ERAS.map(eraCollection), ...audius.GENRES.map(genreCollection)];
 
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: space.xxl }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>

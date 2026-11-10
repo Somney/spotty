@@ -87,7 +87,14 @@ function Shell() {
         })}
       </View>
 
-      <NowPlaying visible={nowPlaying} onClose={() => setNowPlaying(false)} />
+      <NowPlaying
+        visible={nowPlaying}
+        onClose={() => setNowPlaying(false)}
+        onOpen={(c) => {
+          setNowPlaying(false);
+          open(c);
+        }}
+      />
     </View>
   );
 }

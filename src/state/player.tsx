@@ -1,4 +1,5 @@
 import { AudioPlayer, createAudioPlayer, setAudioModeAsync, useAudioPlayerStatus } from 'expo-audio';
+import { Platform } from 'react-native';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import * as archive from '../api/archive';
 import { Track } from '../types';
@@ -83,7 +84,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       set({ pos, loading: true, error: null });
       player.pause();
       try {
-        const ready = await archive.resolve(track);
+        // Skip the await when the URL is already known: iOS Safari only lets audio start
+        // in the same tick as the tap that asked for it.
+        const ready = track.streamUrl ? track : await archive.resolve(track);
         if (mine !== ticket.current) return;
         player.replace({ uri: ready.streamUrl! });
         player.play();
@@ -96,6 +99,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         } catch {
           // Lock screen controls are a nicety; never fail playback over them.
         }
+        webMediaKeys.current();
         set({ loading: false });
       } catch (e: any) {
         if (mine !== ticket.current) return;
@@ -181,11 +185,23 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [player, load]);
 
   const next = useCallback(() => step(1, false), [step]);
+  const webMediaKeys = useRef(() => {});
 
   const previous = useCallback(() => {
     if (player.currentTime > 3 || ref.current.pos === 0) player.seekTo(0);
     else step(-1, false);
   }, [player, step]);
+
+  // Browsers (including a home-screen web app on iOS) expose skip buttons through Media Session.
+  webMediaKeys.current = () => {
+    if (Platform.OS !== 'web' || typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+    try {
+      navigator.mediaSession.setActionHandler('nexttrack', next);
+      navigator.mediaSession.setActionHandler('previoustrack', previous);
+    } catch {
+      // Older browsers reject unknown actions.
+    }
+  };
 
   const seek = useCallback((seconds: number) => void player.seekTo(Math.max(0, seconds)), [player]);
 
