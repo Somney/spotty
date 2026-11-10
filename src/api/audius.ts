@@ -34,18 +34,20 @@ function url(path: string, params: Record<string, string | number | undefined> =
 
 function toTrack(t: any): Track | null {
   if (!t?.id || t.is_delete || t.is_stream_gated || t.is_streamable === false) return null;
+  const avatar = t.user?.profile_picture?.['480x480'] ?? t.user?.profile_picture?.['150x150'];
   return {
     id: `audius:${t.id}`,
     source: 'audius',
     title: t.title ?? 'Untitled',
     artist: t.user?.name ?? 'Unknown artist',
-    artwork: t.artwork?.['150x150'],
-    artworkLarge: t.artwork?.['480x480'] ?? t.artwork?.['1000x1000'],
+    // Tracks uploaded without a cover borrow the artist's picture.
+    artwork: t.artwork?.['150x150'] ?? avatar,
+    artworkLarge: t.artwork?.['480x480'] ?? t.artwork?.['1000x1000'] ?? avatar,
     duration: t.duration,
     year: t.release_date ? new Date(t.release_date).getFullYear() : undefined,
     streamUrl: `${BASE}/tracks/${t.id}/stream?${APP}`,
     artistId: t.user?.id,
-    artistArtwork: t.user?.profile_picture?.['480x480'] ?? t.user?.profile_picture?.['150x150'],
+    artistArtwork: avatar,
   };
 }
 
@@ -59,7 +61,7 @@ function toCollection(p: any): Collection {
     kind: 'playlist',
     title: p.playlist_name ?? 'Playlist',
     subtitle: `${p.is_album ? 'Album' : 'Playlist'} · ${p.user?.name ?? 'Audius'}`,
-    artwork: p.artwork?.['480x480'] ?? p.artwork?.['150x150'],
+    artwork: p.artwork?.['480x480'] ?? p.artwork?.['150x150'] ?? p.user?.profile_picture?.['480x480'],
     ref: p.id,
   };
 }

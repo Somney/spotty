@@ -16,9 +16,9 @@ import { Collection } from './src/types';
 
 type Tab = 'home' | 'search' | 'library';
 const TABS: { key: Tab; label: string; icon: string }[] = [
-  { key: 'home', label: 'Home', icon: 'home' },
+  { key: 'home', label: 'Listen Now', icon: 'play-circle' },
   { key: 'search', label: 'Search', icon: 'search' },
-  { key: 'library', label: 'Library', icon: 'library' },
+  { key: 'library', label: 'Library', icon: 'albums' },
 ];
 
 function Shell() {
@@ -80,8 +80,8 @@ function Shell() {
               accessibilityState={{ selected: on }}
               accessibilityLabel={t.label}
             >
-              <Ionicons name={(on ? t.icon : `${t.icon}-outline`) as any} size={23} color={on ? colors.text : colors.faint} />
-              <Text style={[styles.tabLabel, on && { color: colors.text }]}>{t.label}</Text>
+              <Ionicons name={(on ? t.icon : `${t.icon}-outline`) as any} size={25} color={on ? colors.accent : colors.sub} />
+              <Text style={[styles.tabLabel, on && { color: colors.accent }]}>{t.label}</Text>
             </Pressable>
           );
         })}
@@ -114,7 +114,7 @@ export default function App() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { flex: 1 },
-  tabs: { flexDirection: 'row', backgroundColor: colors.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingTop: 8 },
-  tab: { flex: 1, alignItems: 'center', gap: 2 },
-  tabLabel: { color: colors.faint, fontSize: 11, fontWeight: '600' },
+  tabs: { flexDirection: 'row', backgroundColor: '#121212', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingTop: 6 },
+  tab: { flex: 1, alignItems: 'center', gap: 1 },
+  tabLabel: { color: colors.sub, fontSize: 10, fontWeight: '500' },
 });

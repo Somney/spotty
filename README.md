@@ -8,11 +8,17 @@ Spotty only plays music that is free to stream legally, which is why there are n
 
 | Source | What you get |
 | --- | --- |
-| [Audius](https://audius.co) | Current music that artists publish themselves: trending charts, genres, playlists, search. |
-| [Internet Archive](https://archive.org) 78rpm collection | Original records from 1900–1925, which are in the US public domain. |
+| [Audius](https://audius.co) | Current music that artists publish themselves: charts, new releases, genres, playlists, artist pages. |
+| [Radio Browser](https://www.radio-browser.info) | Live internet radio from licensed broadcasters: hit radio, genres and decades. This is where chart music comes from. |
+| [Internet Archive](https://archive.org) 78rpm collection | Professionally digitized records from 1900–1925 (US public domain), each with a photo of its label. |
 | [Live Music Archive](https://archive.org/details/etree) | Full concert recordings shared with the bands' permission. |
 
-It does not carry the major-label catalogue (that needs licensing deals).
+Listings are filtered for quality: radio entries must be working HTTPS streams at a decent bitrate with
+sane names, and offensive period titles are left out of the vintage catalogue. Artist photos for
+recordings without a cover come from Wikipedia.
+
+On-demand playback of the major-label catalogue is not included (that needs licensing deals); radio
+stations play it live.
 
 ## Features
 

@@ -2,7 +2,8 @@ import { Collection, Track } from '../types';
 import { getJson } from './http';
 
 // Internet Archive. Two parts of it are used:
-//  - 78rpm records published 1900-1925, which are in the US public domain.
+//  - 78rpm records published 1900-1925, which are in the US public domain. Only the professionally
+//    digitized set ("georgeblood") is used: clean transfers, each with a photo of the record label.
 //  - The Live Music Archive ("etree"): concert recordings shared with the bands' permission.
 const SEARCH = 'https://archive.org/advancedsearch.php';
 
@@ -26,8 +27,13 @@ function searchUrl(q: string, rows: number, sort: string) {
 }
 
 // Strip characters that have meaning in the Archive's Lucene query syntax.
+// Every word must match, otherwise "grateful dead" also returns anything with "dead" in it.
 function clean(text: string) {
-  return text.replace(/[^\p{L}\p{N}\s'-]/gu, ' ').trim();
+  return text
+    .replace(/[^\p{L}\p{N}\s']/gu, ' ')
+    .split(/\s+/)
+    .filter((w) => w && !/^(AND|OR|NOT|TO)$/.test(w))
+    .join(' AND ');
 }
 
 export async function vintage(opts: { query?: string; from?: number; to?: number; rows?: number } = {}): Promise<Track[]> {
@@ -35,13 +41,17 @@ export async function vintage(opts: { query?: string; from?: number; to?: number
   const to = Math.min(opts.to ?? VINTAGE_TO, VINTAGE_TO);
   const text = opts.query ? clean(opts.query) : '';
   if (opts.query && !text) return [];
-  const q = `collection:78rpm AND mediatype:audio AND year:[${from} TO ${to}]${text ? ` AND (${text})` : ''}`;
-  const r = await getJson<{ response: { docs: any[] } }>(searchUrl(q, opts.rows ?? 30, 'downloads desc'));
-  return r.response.docs.map((d) => ({
+  const q = `collection:georgeblood AND mediatype:audio AND year:[${from} TO ${to}]${text ? ` AND (title:(${text}) OR creator:(${text}))` : ''}`;
+  const rows = opts.rows ?? 30;
+  const r = await getJson<{ response: { docs: any[] } }>(searchUrl(q, rows + 10, 'downloads desc'));
+  const docs = r.response.docs.filter((d) => !OFFENSIVE.test(first(d.title) ?? '')).slice(0, rows);
+  return docs.map((d) => ({
     id: `archive:${d.identifier}`,
     source: 'archive' as const,
     title: first(d.title) ?? d.identifier,
-    artist: first(d.creator) ?? 'Unknown artist',
+    artist: (first(d.creator) ?? 'Unknown artist').replace(/,(?=\S)/g, ', '),
+    artwork: labelArt(d.identifier),
+    artworkLarge: labelArt(d.identifier),
     year: d.year ? Number(d.year) : undefined,
     archiveId: d.identifier,
   }));
@@ -50,7 +60,7 @@ export async function vintage(opts: { query?: string; from?: number; to?: number
 export async function concerts(opts: { query?: string; rows?: number } = {}): Promise<Collection[]> {
   const text = opts.query ? clean(opts.query) : '';
   if (opts.query && !text) return [];
-  const q = `collection:etree AND mediatype:etree${text ? ` AND (${text})` : ''}`;
+  const q = `collection:etree AND mediatype:etree${text ? ` AND (title:(${text}) OR creator:(${text}))` : ''}`;
   const r = await getJson<{ response: { docs: any[] } }>(searchUrl(q, opts.rows ?? 12, 'downloads desc'));
   return r.response.docs.map((d) => {
     const artist = first(d.creator) ?? 'Live recording';
@@ -63,9 +73,16 @@ export async function concerts(opts: { query?: string; rows?: number } = {}): Pr
       title: venue ? `${artist} — ${venue}` : full,
       subtitle: `Live${d.year ? ` · ${d.year}` : ''} · ${artist}`,
       ref: d.identifier,
+      artist,
     };
   });
 }
+
+/** Photo of the record label; only the digitized 78s have one worth showing. */
+const labelArt = (id: string) => (id.startsWith('78_') ? `https://archive.org/services/img/${id}` : undefined);
+
+// Titles from this era include racist caricature songs; they are left out of browsing and search.
+const OFFENSIVE = /\b(nigg\w*|coon\w*|dark(y|ie|ies)|pickaninn\w*|chink\w*|jap|japs|injun\w*|wop|wops|kike\w*)\b/i;
 
 function parseLength(v: unknown): number | undefined {
   const s = first(v);
@@ -89,6 +106,8 @@ export async function itemTracks(id: string): Promise<Track[]> {
     source: 'archive' as const,
     title: first(f.title) ?? first(r.metadata?.title) ?? f.name.replace(/\.mp3$/i, ''),
     artist: first(f.creator) ?? first(r.metadata?.creator) ?? 'Unknown artist',
+    artwork: labelArt(id),
+    artworkLarge: labelArt(id),
     duration: parseLength(f.length),
     year,
     streamUrl: `https://archive.org/download/${id}/${f.name.split('/').map(encodeURIComponent).join('/')}`,

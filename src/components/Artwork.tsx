@@ -3,42 +3,52 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import { StyleProp, View, ViewStyle } from 'react-native';
-import { gradientFor, radius } from '../theme';
+import { useArtistImage } from '../api/artwork';
+import { placeholder, radius } from '../theme';
 
 interface Props {
   uri?: string;
-  /** Seeds the fallback gradient so each item keeps a stable colour. */
-  seed: string;
   size?: number;
   rounded?: number;
   icon?: string;
+  /** Artist name to look a photo up for when there is no cover. */
+  lookup?: string;
   style?: StyleProp<ViewStyle>;
 }
 
-export function Artwork({ uri, seed, size, rounded = radius.sm, icon, style }: Props) {
-  // Archive recordings have no cover art, so they get a record or a mic on a colour wash.
-  const glyph = icon ?? (seed.startsWith('archive-item:') ? 'mic' : seed.startsWith('archive:') ? 'disc' : 'musical-notes');
-  const [failed, setFailed] = useState(false);
+export function Artwork({ uri, size, rounded = radius.sm, icon = 'musical-note', lookup, style }: Props) {
+  const [failed, setFailed] = useState<string | null>(null);
+  const own = uri && failed !== uri ? uri : undefined;
+  const found = useArtistImage(lookup, !own);
+  const shown = own ?? (found && failed !== found ? found : undefined);
+
   const box: ViewStyle = { width: size, height: size, borderRadius: rounded, overflow: 'hidden' };
   return (
     <View style={[box, !size && { aspectRatio: 1, width: '100%' }, style]}>
       <LinearGradient
-        colors={gradientFor(seed)}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        colors={placeholder}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
       >
-        <Ionicons name={glyph as any} size={size ? Math.max(16, size * 0.4) : 44} color="rgba(255,255,255,0.75)" />
+        <Ionicons name={icon as any} size={size ? Math.max(16, size * 0.36) : 44} color="rgba(255,255,255,0.28)" />
       </LinearGradient>
-      {uri && !failed ? (
+      {shown ? (
         <Image
-          source={{ uri }}
+          source={{ uri: shown }}
           style={{ width: '100%', height: '100%' }}
           contentFit="cover"
-          transition={200}
-          onError={() => setFailed(true)}
+          transition={250}
+          recyclingKey={shown}
+          onError={() => setFailed(shown)}
         />
       ) : null}
     </View>
   );
+}
+
+/** Which placeholder glyph and photo lookup suit a track. */
+export function trackArt(t: { source: string; artist: string }) {
+  return {
+    icon: t.source === 'radio' ? 'radio' : t.source === 'archive' ? 'disc' : 'musical-note',
+    lookup: t.source === 'archive' ? t.artist : undefined,
+  };
 }

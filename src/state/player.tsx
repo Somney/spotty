@@ -94,7 +94,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           player.setActiveForLockScreen(
             true,
             { title: track.title, artist: track.artist, artworkUrl: track.artworkLarge ?? track.artwork },
-            { showSeekForward: true, showSeekBackward: true }
+            track.isLive ? { isLiveStream: true } : { showSeekForward: true, showSeekBackward: true }
           );
         } catch {
           // Lock screen controls are a nicety; never fail playback over them.
@@ -147,7 +147,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         if (track) addRecent(track);
       }
       if (s.error && !ref.current.loading && !ref.current.error) {
-        onFailure('This track could not be streamed');
+        onFailure("Couldn't play this right now");
         return;
       }
       if (s.didJustFinish && finishedTicket.current !== ticket.current) {
@@ -188,7 +188,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const webMediaKeys = useRef(() => {});
 
   const previous = useCallback(() => {
-    if (player.currentTime > 3 || ref.current.pos === 0) player.seekTo(0);
+    const { queue, order, pos } = ref.current;
+    const live = queue[order[pos]]?.isLive;
+    // A broadcast cannot be rewound, so Previous always changes station.
+    if (!live && (player.currentTime > 3 || pos === 0)) player.seekTo(0);
     else step(-1, false);
   }, [player, step]);
 

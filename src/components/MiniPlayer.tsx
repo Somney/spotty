@@ -3,59 +3,57 @@ import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { usePlayback, usePlayer } from '../state/player';
 import { colors, radius, space } from '../theme';
-import { Artwork } from './Artwork';
+import { Artwork, trackArt } from './Artwork';
 
 export function MiniPlayer({ onOpen }: { onOpen: () => void }) {
   const { current, loading, error, toggle, next } = usePlayer();
   const status = usePlayback();
   if (!current) return null;
 
-  const progress = status.duration > 0 ? Math.min(1, status.currentTime / status.duration) : 0;
+  const playing = status.playing && !error;
   const busy = loading || (status.isBuffering && !status.playing && !error);
 
   return (
     <Pressable onPress={onOpen} style={styles.wrap} accessibilityRole="button" accessibilityLabel="Open now playing">
-      <View style={styles.row}>
-        <Artwork uri={current.artwork} seed={current.id} size={42} />
-        <View style={styles.text}>
-          <Text style={styles.title} numberOfLines={1}>
-            {current.title}
+      <Artwork uri={current.artwork} size={44} rounded={radius.sm} {...trackArt(current)} />
+      <View style={styles.text}>
+        <Text style={styles.title} numberOfLines={1}>
+          {current.title}
+        </Text>
+        {error ? (
+          <Text style={[styles.sub, { color: colors.danger }]} numberOfLines={1}>
+            {error}
           </Text>
-          <Text style={[styles.sub, error ? { color: colors.danger } : null]} numberOfLines={1}>
-            {error ?? current.artist}
-          </Text>
-        </View>
-        <Pressable onPress={toggle} hitSlop={10} style={styles.btn} accessibilityRole="button" accessibilityLabel={status.playing ? 'Pause' : 'Play'}>
-          {busy ? (
-            <ActivityIndicator color={colors.text} />
-          ) : (
-            <Ionicons name={status.playing && !error ? 'pause' : 'play'} size={26} color={colors.text} />
-          )}
-        </Pressable>
-        <Pressable onPress={next} hitSlop={10} style={styles.btn} accessibilityRole="button" accessibilityLabel="Next track">
-          <Ionicons name="play-skip-forward" size={22} color={colors.text} />
-        </Pressable>
+        ) : null}
       </View>
-      <View style={styles.bar}>
-        <View style={[styles.fill, { width: `${progress * 100}%` }]} />
-      </View>
+      <Pressable onPress={toggle} hitSlop={10} style={styles.btn} accessibilityRole="button" accessibilityLabel={playing ? 'Pause' : 'Play'}>
+        {busy ? <ActivityIndicator color={colors.text} /> : <Ionicons name={playing ? 'pause' : 'play'} size={24} color={colors.text} />}
+      </Pressable>
+      <Pressable onPress={next} hitSlop={10} style={styles.btn} accessibilityRole="button" accessibilityLabel="Next track">
+        <Ionicons name="play-forward" size={24} color={colors.text} />
+      </Pressable>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
     marginHorizontal: space.sm,
-    marginBottom: space.xs,
+    marginBottom: 6,
+    padding: 8,
     backgroundColor: colors.surfaceHi,
-    borderRadius: radius.md,
-    overflow: 'hidden',
+    borderRadius: radius.lg,
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.sm },
   text: { flex: 1, minWidth: 0 },
-  title: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  sub: { color: colors.sub, fontSize: 12, marginTop: 1 },
+  title: { color: colors.text, fontSize: 16, letterSpacing: -0.2 },
+  sub: { fontSize: 12, marginTop: 1 },
   btn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  bar: { height: 2, backgroundColor: 'rgba(255,255,255,0.12)' },
-  fill: { height: 2, backgroundColor: colors.accent },
 });

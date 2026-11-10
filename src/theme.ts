@@ -1,29 +1,32 @@
 export const colors = {
-  bg: '#0B0B12',
-  surface: '#15151E',
-  surfaceHi: '#1F1F2B',
-  border: '#2A2A38',
-  text: '#F4F3F8',
-  sub: '#9A99A8',
-  faint: '#6B6A78',
-  accent: '#FFB23F',
+  bg: '#000000',
+  surface: '#1C1C1E',
+  surfaceHi: '#2C2C2E',
+  border: '#38383A',
+  text: '#FFFFFF',
+  sub: '#98989F',
+  faint: '#636366',
+  accent: '#FF9F0A',
   accentInk: '#1A1204',
-  danger: '#FF6B6B',
+  danger: '#FF453A',
 };
 
-export const radius = { sm: 6, md: 10, lg: 16, pill: 999 };
-export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
+export const radius = { sm: 6, md: 10, lg: 14, pill: 999 };
+export const space = { xs: 4, sm: 8, md: 12, lg: 20, xl: 28, xxl: 40 };
 
-// Deterministic gradient per string, used as artwork fallback and for tiles.
+/** Neutral backdrop for artwork that has not loaded or does not exist. */
+export const placeholder: [string, string] = ['#3A3A3C', '#1C1C1E'];
+
+// Deep, desaturated pairs: used for browse tiles and the player backdrop only.
 const PALETTES: [string, string][] = [
-  ['#FF8A3D', '#B3261E'],
-  ['#7B5CFF', '#2A1B7A'],
-  ['#18B6A0', '#0B4A52'],
-  ['#F2569B', '#6A1B5E'],
-  ['#3D8BFF', '#14306E'],
-  ['#E0B33C', '#6B4A0E'],
-  ['#5FC25B', '#1B4D2B'],
-  ['#C06CFF', '#41206E'],
+  ['#8E4A2B', '#3B1D12'],
+  ['#4B3F8F', '#1D1840'],
+  ['#1F6F68', '#0C2E2F'],
+  ['#8A3A5E', '#381528'],
+  ['#2F5C94', '#12253F'],
+  ['#7A6426', '#30270E'],
+  ['#3E7A45', '#17301C'],
+  ['#6D4391', '#2A193B'],
 ];
 
 export function gradientFor(key: string): [string, string] {

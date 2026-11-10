@@ -2,12 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LIKED, RECENT } from '../collections';
-import { Artwork } from '../components/Artwork';
 import { SectionTitle } from '../components/Shelf';
 import { TrackRow } from '../components/TrackRow';
 import { useLibrary } from '../state/library';
 import { usePlayer } from '../state/player';
-import { colors, radius, space } from '../theme';
+import { colors, space } from '../theme';
 import { Collection } from '../types';
 
 export function LibraryScreen({ onOpen }: { onOpen: (c: Collection) => void }) {
@@ -15,21 +14,19 @@ export function LibraryScreen({ onOpen }: { onOpen: (c: Collection) => void }) {
   const player = usePlayer();
 
   const entry = (c: Collection, count: number) => (
-    <Pressable onPress={() => onOpen(c)} style={({ pressed }) => [styles.entry, pressed && { opacity: 0.7 }]} accessibilityRole="button">
-      <Artwork seed={c.id} size={56} rounded={radius.md} icon={c.icon} />
-      <View style={{ flex: 1 }}>
+    <Pressable onPress={() => onOpen(c)} style={({ pressed }) => [styles.entry, pressed && { backgroundColor: colors.surface }]} accessibilityRole="button">
+      <Ionicons name={c.icon as any} size={24} color={colors.accent} style={{ width: 30 }} />
+      <View style={styles.entryBody}>
         <Text style={styles.entryTitle}>{c.title}</Text>
-        <Text style={styles.entrySub}>
-          {count} {count === 1 ? 'song' : 'songs'}
-        </Text>
+        <Text style={styles.count}>{count}</Text>
+        <Ionicons name="chevron-forward" size={18} color={colors.faint} />
       </View>
-      <Ionicons name="chevron-forward" size={20} color={colors.faint} />
     </Pressable>
   );
 
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: space.xxl }} showsVerticalScrollIndicator={false}>
-      <Text style={styles.heading}>Your library</Text>
+      <Text style={styles.largeTitle}>Library</Text>
       <View style={{ marginTop: space.md }}>
         {entry(LIKED, liked.length)}
         {entry(RECENT, recent.length)}
@@ -37,16 +34,15 @@ export function LibraryScreen({ onOpen }: { onOpen: (c: Collection) => void }) {
 
       {recent.length ? (
         <View style={{ marginTop: space.xl }}>
-          <SectionTitle title="Jump back in" />
+          <SectionTitle title="Recently Played" />
           {recent.slice(0, 8).map((t, i) => (
             <TrackRow key={t.id} track={t} active={player.current?.id === t.id} onPress={() => player.playQueue(recent, i, { shuffle: false })} />
           ))}
         </View>
       ) : (
         <View style={styles.empty}>
-          <Ionicons name="headset" size={40} color={colors.faint} />
-          <Text style={styles.emptyTitle}>Nothing here yet</Text>
-          <Text style={styles.emptyText}>Play something from Home, and tap the heart on songs you want to keep.</Text>
+          <Text style={styles.emptyTitle}>Your music will appear here</Text>
+          <Text style={styles.emptyText}>Songs you play and the ones you mark as favourites are kept on this device.</Text>
         </View>
       )}
     </ScrollView>
@@ -54,11 +50,21 @@ export function LibraryScreen({ onOpen }: { onOpen: (c: Collection) => void }) {
 }
 
 const styles = StyleSheet.create({
-  heading: { color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, paddingHorizontal: space.lg, paddingTop: space.lg },
-  entry: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.sm },
-  entryTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  entrySub: { color: colors.sub, fontSize: 13, marginTop: 2 },
-  empty: { alignItems: 'center', paddingHorizontal: space.xxl, marginTop: 64, gap: space.sm },
-  emptyTitle: { color: colors.text, fontSize: 17, fontWeight: '700', marginTop: space.sm },
-  emptyText: { color: colors.sub, fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  largeTitle: { color: colors.text, fontSize: 34, fontWeight: '700', letterSpacing: -0.6, paddingHorizontal: space.lg, paddingTop: space.md },
+  entry: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingLeft: space.lg },
+  entryBody: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    height: 52,
+    paddingRight: space.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  entryTitle: { flex: 1, color: colors.text, fontSize: 20, letterSpacing: -0.3 },
+  count: { color: colors.sub, fontSize: 17 },
+  empty: { alignItems: 'center', paddingHorizontal: space.xxl, marginTop: 88, gap: space.sm },
+  emptyTitle: { color: colors.text, fontSize: 22, fontWeight: '700', letterSpacing: -0.4, textAlign: 'center' },
+  emptyText: { color: colors.sub, fontSize: 16, textAlign: 'center', lineHeight: 22 },
 });

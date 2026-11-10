@@ -44,10 +44,10 @@ export function SeekBar({ position, duration, onSeek }: Props) {
         accessibilityLabel="Seek"
         accessibilityValue={{ min: 0, max: Math.round(duration || 0), now: Math.round(position || 0) }}
       >
-        <View style={styles.track} pointerEvents="none">
-          <View style={[styles.fill, { width: `${fraction * 100}%` }]} />
+        {/* No thumb: the bar itself thickens while it is being dragged. */}
+        <View style={[styles.track, drag !== null && styles.trackActive]} pointerEvents="none">
+          <View style={[styles.fill, drag !== null && styles.fillActive, { width: `${fraction * 100}%` }]} />
         </View>
-        <View pointerEvents="none" style={[styles.thumb, { left: `${fraction * 100}%` }, drag !== null && styles.thumbActive]} />
       </View>
       <View style={styles.times}>
         <Text style={styles.time}>{formatTime(drag !== null ? drag * duration : position)}</Text>
@@ -59,10 +59,10 @@ export function SeekBar({ position, duration, onSeek }: Props) {
 
 const styles = StyleSheet.create({
   hit: { height: 32, justifyContent: 'center' },
-  track: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.18)', overflow: 'hidden' },
-  fill: { height: 4, backgroundColor: colors.accent },
-  thumb: { position: 'absolute', width: 14, height: 14, borderRadius: 7, marginLeft: -7, backgroundColor: colors.text },
-  thumbActive: { transform: [{ scale: 1.3 }] },
+  track: { height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.2)', overflow: 'hidden' },
+  trackActive: { height: 10, borderRadius: 5 },
+  fill: { height: '100%', backgroundColor: 'rgba(255,255,255,0.75)' },
+  fillActive: { backgroundColor: colors.text },
   times: { flexDirection: 'row', justifyContent: 'space-between' },
-  time: { color: colors.sub, fontSize: 12, fontVariant: ['tabular-nums'] },
+  time: { color: 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: '500', fontVariant: ['tabular-nums'] },
 });

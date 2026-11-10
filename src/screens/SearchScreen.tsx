@@ -4,8 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as archive from '../api/archive';
 import * as audius from '../api/audius';
+import * as radio from '../api/radio';
 import { MOST_SHARED, UNDERGROUND, eraCollection, genreCollection } from '../collections';
+import { trackArt } from '../components/Artwork';
 import { SectionTitle, Shelf, StateNote } from '../components/Shelf';
+import { Tap } from '../components/Tap';
 import { TrackRow } from '../components/TrackRow';
 import { usePlayer } from '../state/player';
 import { colors, gradientFor, radius, space } from '../theme';
@@ -15,41 +18,49 @@ import { useAsync } from '../useAsync';
 function Results({ query, onOpen }: { query: string; onOpen: (c: Collection) => void }) {
   const player = usePlayer();
   const songs = useAsync(() => audius.searchTracks(query), `s:${query}`);
-  const old = useAsync(() => archive.vintage({ query, rows: 15 }), `v:${query}`);
-  const shows = useAsync(() => archive.concerts({ query, rows: 10 }), `c:${query}`);
   const artists = useAsync(() => audius.searchArtists(query), `a:${query}`);
+  const stations = useAsync(() => radio.searchStations(query), `r:${query}`);
+  const old = useAsync(() => archive.vintage({ query, rows: 12 }), `v:${query}`);
+  const shows = useAsync(() => archive.concerts({ query, rows: 10 }), `c:${query}`);
   const lists = useAsync(() => audius.searchPlaylists(query), `p:${query}`);
 
   const rows = (state: typeof songs, limit: number) =>
     state.data?.length ? (
       state.data.slice(0, limit).map((t: Track, i: number) => (
-        <TrackRow
-          key={t.id}
-          track={t}
-          active={player.current?.id === t.id}
-          onPress={() => player.playQueue(state.data!, i, { shuffle: false })}
-        />
+        <TrackRow key={t.id} track={t} active={player.current?.id === t.id} onPress={() => player.playQueue(state.data!, i, { shuffle: false })} />
       ))
     ) : (
-      <StateNote state={state} empty="No matches." />
+      <StateNote state={state} empty="No results." />
     );
 
   const cards = (cols: Collection[] | null, icon: string) =>
-    (cols ?? []).map((c) => ({ key: c.id, title: c.title, subtitle: c.subtitle, artwork: c.artwork, icon, onPress: () => onOpen(c) }));
+    (cols ?? []).map((c) => ({ key: c.id, title: c.title, subtitle: c.subtitle, artwork: c.artwork, icon, lookup: c.artist, onPress: () => onOpen(c) }));
+
+  const stationCards = (stations.data ?? []).map((t, i) => ({
+    key: t.id,
+    title: t.title,
+    subtitle: t.artist.replace('Live radio · ', ''),
+    artwork: t.artwork,
+    ...trackArt(t),
+    onPress: () => player.playQueue(stations.data!, i, { shuffle: false }),
+  }));
 
   return (
     <>
-      <View style={{ marginTop: space.lg }}>
-        <SectionTitle title="Songs" />
-        {rows(songs, 12)}
-      </View>
-      {artists.data?.length !== 0 ? <Shelf title="Artists" items={cards(artists.data, 'person')} state={artists} /> : null}
       <View style={{ marginTop: space.xl }}>
-        <SectionTitle title="From the vault" caption="78rpm records, 1900–1925" />
-        {rows(old, 8)}
+        <SectionTitle title="Songs" />
+        {rows(songs, 10)}
       </View>
-      {shows.data?.length !== 0 ? <Shelf title="Live shows" items={cards(shows.data, 'mic')} state={shows} /> : null}
-      {lists.data?.length !== 0 ? <Shelf title="Playlists" items={cards(lists.data, 'albums')} state={lists} /> : null}
+      <Shelf title="Artists" items={cards(artists.data, 'person')} state={artists} />
+      <Shelf title="Radio Stations" items={stationCards} state={stations} />
+      {old.data?.length !== 0 ? (
+        <View style={{ marginTop: space.xl }}>
+          <SectionTitle title="From the Vault" />
+          {rows(old, 6)}
+        </View>
+      ) : null}
+      <Shelf title="Live Concerts" items={cards(shows.data, 'mic')} state={shows} />
+      <Shelf title="Playlists" items={cards(lists.data, 'albums')} state={lists} />
     </>
   );
 }
@@ -63,22 +74,27 @@ export function SearchScreen({ onOpen }: { onOpen: (c: Collection) => void }) {
     return () => clearTimeout(t);
   }, [text]);
 
-  const tiles: Collection[] = [UNDERGROUND, MOST_SHARED, ...archive.ERAS.map(eraCollection), ...audius.GENRES.map(genreCollection)];
+  const groups: { title: string; tiles: Collection[] }[] = [
+    { title: 'Radio', tiles: radio.RADIO_TAGS.map(radio.radioCollection) },
+    { title: 'Genres', tiles: [UNDERGROUND, MOST_SHARED, ...audius.GENRES.map(genreCollection)] },
+    { title: 'Decades', tiles: archive.ERAS.map(eraCollection) },
+  ];
 
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: space.xxl }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-      <Text style={styles.heading}>Search</Text>
+      <Text style={styles.largeTitle}>Search</Text>
       <View style={styles.inputWrap}>
         <Ionicons name="search" size={18} color={colors.sub} />
         <TextInput
           value={text}
           onChangeText={setText}
-          placeholder="Songs, artists, bands, eras"
-          placeholderTextColor={colors.faint}
+          placeholder="Artists, Songs, Stations and More"
+          placeholderTextColor={colors.sub}
           style={styles.input}
           returnKeyType="search"
           autoCorrect={false}
           autoCapitalize="none"
+          selectionColor={colors.accent}
           onSubmitEditing={() => setQuery(text.trim())}
           accessibilityLabel="Search music"
         />
@@ -92,42 +108,45 @@ export function SearchScreen({ onOpen }: { onOpen: (c: Collection) => void }) {
       {query.length >= 2 ? (
         <Results query={query} onOpen={onOpen} />
       ) : (
-        <>
-          <Text style={styles.browse}>Browse all</Text>
-          <View style={styles.grid}>
-            {tiles.map((c) => (
-              <Pressable key={c.id} onPress={() => onOpen(c)} style={styles.tileWrap} accessibilityRole="button" accessibilityLabel={c.title}>
-                <LinearGradient colors={gradientFor(c.id)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.tile}>
-                  <Text style={styles.tileText}>{c.title}</Text>
-                  <Ionicons name={(c.icon ?? 'musical-notes') as any} size={34} color="rgba(255,255,255,0.35)" style={styles.tileIcon} />
-                </LinearGradient>
-              </Pressable>
-            ))}
+        groups.map((g) => (
+          <View key={g.title} style={{ marginTop: space.xl }}>
+            <SectionTitle title={g.title} />
+            <View style={styles.grid}>
+              {g.tiles.map((c) => (
+                <View key={c.id} style={styles.tileWrap}>
+                  <Tap onPress={() => onOpen(c)} accessibilityRole="button" accessibilityLabel={c.title}>
+                    <LinearGradient colors={gradientFor(c.id)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.tile}>
+                      <Text style={styles.tileText} numberOfLines={2}>
+                        {c.title.replace(/ Radio$/, '')}
+                      </Text>
+                    </LinearGradient>
+                  </Tap>
+                </View>
+              ))}
+            </View>
           </View>
-        </>
+        ))
       )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  heading: { color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, paddingHorizontal: space.lg, paddingTop: space.lg },
+  largeTitle: { color: colors.text, fontSize: 34, fontWeight: '700', letterSpacing: -0.6, paddingHorizontal: space.lg, paddingTop: space.md },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.sm,
+    gap: 6,
     marginHorizontal: space.lg,
     marginTop: space.md,
-    paddingHorizontal: space.md,
-    height: 46,
+    paddingHorizontal: 10,
+    height: 40,
     borderRadius: radius.md,
-    backgroundColor: colors.surfaceHi,
+    backgroundColor: colors.surface,
   },
-  input: { flex: 1, color: colors.text, fontSize: 15, height: 46, outlineStyle: 'none' } as any,
-  browse: { color: colors.text, fontSize: 17, fontWeight: '800', paddingHorizontal: space.lg, marginTop: space.xl, marginBottom: space.md },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: space.lg - space.xs },
-  tileWrap: { width: '50%', padding: space.xs },
-  tile: { height: 92, borderRadius: radius.md, padding: space.md, overflow: 'hidden' },
-  tileText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  tileIcon: { position: 'absolute', right: 8, bottom: 6, transform: [{ rotate: '-15deg' }] },
+  input: { flex: 1, color: colors.text, fontSize: 17, height: 40, outlineStyle: 'none' } as any,
+  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: space.lg - 6 },
+  tileWrap: { width: '50%', padding: 6 },
+  tile: { height: 84, borderRadius: radius.md, padding: space.md, justifyContent: 'flex-end' },
+  tileText: { color: colors.text, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 },
 });
