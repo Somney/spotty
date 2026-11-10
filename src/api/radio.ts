@@ -21,6 +21,42 @@ export const RADIO_TAGS = [
   { label: 'Oldies Radio', tag: 'oldies' },
 ];
 
+export const COUNTRIES: { code: string; name: string }[] = [
+  { code: 'US', name: 'United States' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'IE', name: 'Ireland' },
+  { code: 'FR', name: 'France' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'IT', name: 'Italy' },
+  { code: 'NL', name: 'Netherlands' },
+  { code: 'SE', name: 'Sweden' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'AR', name: 'Argentina' },
+  { code: 'CO', name: 'Colombia' },
+  { code: 'IN', name: 'India' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'KR', name: 'South Korea' },
+  { code: 'PH', name: 'Philippines' },
+  { code: 'NG', name: 'Nigeria' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'JM', name: 'Jamaica' },
+  { code: 'TR', name: 'Turkey' },
+  { code: 'AE', name: 'UAE' },
+];
+
+export const countryCollection = (c: { code: string; name: string }): Collection => ({
+  id: `radio:country:${c.code}`,
+  kind: 'radio',
+  title: c.name,
+  subtitle: 'Most popular stations',
+  ref: `country:${c.code}`,
+  icon: 'earth',
+});
+
 export const radioCollection = (r: { label: string; tag: string }): Collection => ({
   id: `radio:${r.tag}`,
   kind: 'radio',
@@ -54,6 +90,8 @@ const SHORT: Record<string, string> = {
   AE: 'UAE',
 };
 
+const NOT_MUSIC = /\b(news|talk|sports?|politic\w*|information|weather|traffic|comedy|religio\w*|christian|gospel|catholic|islam\w*|quran|bible|podcast|audiobook\w*|scanner|police)\b/i;
+
 function toTrack(s: any): Track {
   const logo = String(s.favicon ?? '').startsWith('https://') ? s.favicon : undefined;
   const country = SHORT[s.countrycode] ?? String(s.country ?? '').replace(/^The /, '');
@@ -70,7 +108,7 @@ function toTrack(s: any): Track {
 }
 
 /** Two-letter country of the device, e.g. "US", when the system exposes one. */
-function region(): string | undefined {
+export function region(): string | undefined {
   try {
     const locale = Intl.DateTimeFormat().resolvedOptions().locale;
     return locale.match(/[-_]([A-Z]{2})\b/)?.[1];
@@ -110,6 +148,22 @@ export async function stations(tag: string, limit = 30): Promise<Track[]> {
   // Very small genres may have nothing in English; fall back to everything.
   if (merged.length >= 6) return merged.slice(0, limit);
   return dedupe([...merged, ...logoFirst(await query(base, limit))]).slice(0, limit);
+}
+
+/** The most listened-to stations in one country, whatever they play. */
+export async function topInCountry(code: string, limit = 30): Promise<Track[]> {
+  const r = await getJson<any[]>(
+    `${BASE}/stations/search?countrycode=${encodeURIComponent(code)}&order=clickcount&reverse=true&hidebroken=true&is_https=true&limit=${limit * 5}`
+  );
+  // A country's most popular stations are often news and talk; this is a music app.
+  const music = r.filter((s) => looksLegit(s) && !NOT_MUSIC.test(`${s.tags} ${s.name}`));
+  return dedupe(logoFirst(music.map(toTrack))).slice(0, limit);
+}
+
+/** The listener's country if it is one we list, otherwise the first entry. */
+export function homeCountry() {
+  const here = region();
+  return COUNTRIES.find((c) => c.code === here) ?? COUNTRIES[0];
 }
 
 export async function searchStations(name: string, limit = 12): Promise<Track[]> {

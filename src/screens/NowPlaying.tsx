@@ -8,6 +8,7 @@ import { Artwork, trackArt } from '../components/Artwork';
 import { SeekBar } from '../components/SeekBar';
 import { Tap } from '../components/Tap';
 import { TrackRow } from '../components/TrackRow';
+import { YouTubeView } from '../components/YouTubeView';
 import { useLibrary } from '../state/library';
 import { usePlayback, usePlayer } from '../state/player';
 import { colors, gradientFor, radius, space } from '../theme';
@@ -21,7 +22,8 @@ export function NowPlaying({ visible, onClose, onOpen }: { visible: boolean; onC
   const { width, height } = useWindowDimensions();
   const track = p.current;
 
-  const playing = status.playing && !p.error;
+  const video = track?.videoId;
+  const playing = !!video || (status.playing && !p.error);
   // The cover settles back slightly while paused and swells when music plays.
   const scale = useRef(new Animated.Value(playing ? 1 : 0.86)).current;
   useEffect(() => {
@@ -38,6 +40,8 @@ export function NowPlaying({ visible, onClose, onOpen }: { visible: boolean; onC
       ? 'Audius'
       : track.source === 'radio'
         ? 'Live broadcast'
+        : track.source === 'youtube'
+          ? 'Playing in the YouTube player'
         : `Internet Archive${track.year ? ` · ${track.year}` : ''}`;
 
   return (
@@ -51,9 +55,14 @@ export function NowPlaying({ visible, onClose, onOpen }: { visible: boolean; onC
             <View style={styles.grabber} />
           </Pressable>
 
-          <Animated.View style={[styles.art, { width: artSize, height: artSize, transform: [{ scale }] }]}>
-            <Artwork uri={track.artworkLarge ?? track.artwork} size={artSize} rounded={radius.lg} {...trackArt(track)} />
-          </Animated.View>
+          {video ? (
+            // Only mounted while this screen is open, so the video stops when it closes.
+            <View style={styles.video}>{visible ? <YouTubeView videoId={video} onEnded={p.videoEnded} onError={p.videoEnded} /> : null}</View>
+          ) : (
+            <Animated.View style={[styles.art, { width: artSize, height: artSize, transform: [{ scale }] }]}>
+              <Artwork uri={track.artworkLarge ?? track.artwork} size={artSize} rounded={radius.lg} {...trackArt(track)} />
+            </Animated.View>
+          )}
 
           <View style={styles.body}>
             <View style={styles.titleRow}>
@@ -91,7 +100,7 @@ export function NowPlaying({ visible, onClose, onOpen }: { visible: boolean; onC
             </View>
 
             <View style={{ marginTop: space.lg }}>
-              {track.isLive ? (
+              {video ? null : track.isLive ? (
                 <View style={styles.liveRow}>
                   <View style={styles.liveLine} />
                   <Text style={styles.live}>LIVE</Text>
@@ -106,9 +115,11 @@ export function NowPlaying({ visible, onClose, onOpen }: { visible: boolean; onC
               <Tap onPress={p.previous} hitSlop={12} style={styles.skip} scale={0.85} accessibilityRole="button" accessibilityLabel="Previous track">
                 <Ionicons name="play-back" size={36} color={colors.text} />
               </Tap>
-              <Tap onPress={p.toggle} style={styles.play} scale={0.85} accessibilityRole="button" accessibilityLabel={playing ? 'Pause' : 'Play'}>
-                {busy ? <ActivityIndicator color={colors.text} size="large" /> : <Ionicons name={playing ? 'pause' : 'play'} size={52} color={colors.text} />}
-              </Tap>
+              {video ? null : (
+                <Tap onPress={p.toggle} style={styles.play} scale={0.85} accessibilityRole="button" accessibilityLabel={playing ? 'Pause' : 'Play'}>
+                  {busy ? <ActivityIndicator color={colors.text} size="large" /> : <Ionicons name={playing ? 'pause' : 'play'} size={52} color={colors.text} />}
+                </Tap>
+              )}
               <Tap onPress={p.next} hitSlop={12} style={styles.skip} scale={0.85} accessibilityRole="button" accessibilityLabel="Next track">
                 <Ionicons name="play-forward" size={36} color={colors.text} />
               </Tap>
@@ -159,6 +170,7 @@ const styles = StyleSheet.create({
     shadowRadius: 28,
     shadowOffset: { width: 0, height: 16 },
   },
+  video: { marginTop: space.lg, marginHorizontal: space.lg, aspectRatio: 16 / 9, borderRadius: radius.md, overflow: 'hidden', backgroundColor: '#000' },
   body: { paddingHorizontal: space.xl, marginTop: space.xl },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
   title: { color: colors.text, fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },

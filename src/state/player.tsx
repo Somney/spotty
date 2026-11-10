@@ -16,6 +16,8 @@ interface PlayerState {
   repeat: RepeatMode;
   loading: boolean;
   error: string | null;
+  /** Bumped whenever a video wants the player screen opened; videos only play while visible. */
+  videoRequest: number;
 }
 
 interface PlayerValue extends PlayerState {
@@ -29,9 +31,11 @@ interface PlayerValue extends PlayerState {
   toggleShuffle: () => void;
   cycleRepeat: () => void;
   jumpTo: (orderPos: number) => void;
+  /** Called by the video player when its video ends or cannot be played. */
+  videoEnded: () => void;
 }
 
-const EMPTY: PlayerState = { queue: [], order: [], pos: 0, shuffle: false, repeat: 'off', loading: false, error: null };
+const EMPTY: PlayerState = { queue: [], order: [], pos: 0, shuffle: false, repeat: 'off', loading: false, error: null, videoRequest: 0 };
 const MAX_SKIPS_ON_ERROR = 3;
 
 let sharedPlayer: AudioPlayer | null = null;
@@ -83,6 +87,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const mine = ++ticket.current;
       set({ pos, loading: true, error: null });
       player.pause();
+      if (track.videoId) {
+        // Videos run in YouTube's own player on the now-playing screen, not in the audio engine.
+        try {
+          player.clearLockScreenControls();
+        } catch {
+          // Nothing was showing.
+        }
+        addRecent(track);
+        set({ loading: false, videoRequest: ref.current.videoRequest + 1 });
+        return;
+      }
       try {
         // Skip the await when the URL is already known: iOS Safari only lets audio start
         // in the same tick as the tap that asked for it.
@@ -106,7 +121,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         onFailureRef.current(e?.message ?? 'Could not play this track');
       }
     },
-    [player, set]
+    [player, set, addRecent]
   );
 
   const step = useCallback(
@@ -179,18 +194,23 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   const toggle = useCallback(() => {
     if (!ref.current.queue.length || ref.current.loading) return;
+    const { queue, order, pos } = ref.current;
+    if (queue[order[pos]]?.videoId) {
+      set({ videoRequest: ref.current.videoRequest + 1 });
+      return;
+    }
     if (player.playing) player.pause();
     else if (ref.current.error) load(ref.current.pos);
     else player.play();
-  }, [player, load]);
+  }, [player, load, set]);
 
   const next = useCallback(() => step(1, false), [step]);
   const webMediaKeys = useRef(() => {});
 
   const previous = useCallback(() => {
     const { queue, order, pos } = ref.current;
-    const live = queue[order[pos]]?.isLive;
-    // A broadcast cannot be rewound, so Previous always changes station.
+    const live = queue[order[pos]]?.isLive || queue[order[pos]]?.videoId;
+    // A broadcast cannot be rewound (and videos have their own scrubber), so Previous always moves on.
     if (!live && (player.currentTime > 3 || pos === 0)) player.seekTo(0);
     else step(-1, false);
   }, [player, step]);
@@ -221,13 +241,15 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     set({ repeat: r === 'off' ? 'all' : r === 'all' ? 'one' : 'off' });
   }, [set]);
 
+  const videoEnded = useCallback(() => step(1, true), [step]);
+
   const jumpTo = useCallback((orderPos: number) => load(orderPos), [load]);
 
   const value = useMemo<PlayerValue>(() => {
     const current = state.queue[state.order[state.pos]] ?? null;
     const upNext = state.order.slice(state.pos + 1, state.pos + 21).map((i) => state.queue[i]);
-    return { ...state, current, upNext, playQueue, toggle, next, previous, seek, toggleShuffle, cycleRepeat, jumpTo };
-  }, [state, playQueue, toggle, next, previous, seek, toggleShuffle, cycleRepeat, jumpTo]);
+    return { ...state, current, upNext, playQueue, toggle, next, previous, seek, toggleShuffle, cycleRepeat, jumpTo, videoEnded };
+  }, [state, playQueue, toggle, next, previous, seek, toggleShuffle, cycleRepeat, jumpTo, videoEnded]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

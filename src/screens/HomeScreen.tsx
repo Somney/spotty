@@ -6,10 +6,12 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as archive from '../api/archive';
 import * as audius from '../api/audius';
 import * as radio from '../api/radio';
-import { ALL_TIME, TOP_SONGS, UNDERGROUND, eraCollection } from '../collections';
+import * as youtube from '../api/youtube';
+import { ALL_TIME, TOP_SONGS, UNDERGROUND, eraCollection, genreCollection } from '../collections';
 import { trackArt } from '../components/Artwork';
 import { SectionTitle, Shelf, ShelfItem, StateNote } from '../components/Shelf';
 import { Tap } from '../components/Tap';
+import { TileRow } from '../components/TileRow';
 import { TrackRow } from '../components/TrackRow';
 import { usePlayer } from '../state/player';
 import { colors, gradientFor, radius, space } from '../theme';
@@ -17,6 +19,7 @@ import { Collection, Track } from '../types';
 import { useAsync } from '../useAsync';
 
 const HIT_RADIO = radio.RADIO_TAGS[0];
+const HOME = radio.homeCountry();
 const THROWBACK = radio.RADIO_TAGS.find((r) => r.tag === 'oldies')!;
 
 function today() {
@@ -27,6 +30,9 @@ export function HomeScreen({ onOpen }: { onOpen: (c: Collection) => void }) {
   const player = usePlayer();
 
   const trending = useAsync(() => audius.trending({ time: 'week', limit: 30 }), 'trend');
+  const ytKey = youtube.useYouTubeKey();
+  const videos = useAsync(() => (ytKey ? youtube.popular(HOME.code, 20) : Promise.resolve([])), `yt:${ytKey}`);
+  const local = useAsync(() => radio.topInCountry(HOME.code, 14), 'radio:home');
   const hits = useAsync(() => radio.stations(HIT_RADIO.tag, 14), 'radio:hits');
   const fresh = useAsync(() => audius.underground(20), 'underground');
   const playlists = useAsync(() => audius.trendingPlaylists(12), 'playlists');
@@ -97,8 +103,15 @@ export function HomeScreen({ onOpen }: { onOpen: (c: Collection) => void }) {
         </View>
       ) : null}
 
+      <TileRow title="Genres" tiles={audius.GENRES.map(genreCollection)} onOpen={onOpen} />
+
+      {ytKey ? (
+        <Shelf title={`Trending in ${HOME.name}`} items={trackItems(videos.data)} state={videos} onSeeAll={() => onOpen(youtube.youtubeCollection(HOME))} />
+      ) : null}
+      <Shelf title={`Popular in ${HOME.name}`} items={trackItems(local.data)} state={local} onSeeAll={() => onOpen(radio.countryCollection(HOME))} />
       <Shelf title="Hit Radio" items={trackItems(hits.data)} state={hits} onSeeAll={() => onOpen(radio.radioCollection(HIT_RADIO))} />
       <Shelf title="New & Rising" items={trackItems(fresh.data)} state={fresh} onSeeAll={() => onOpen(UNDERGROUND)} />
+      <TileRow title="Around the World" tiles={radio.COUNTRIES.filter((c) => c.code !== HOME.code).map(radio.countryCollection)} onOpen={onOpen} />
       <Shelf title="Playlists" items={collectionItems(playlists.data, 'albums')} state={playlists} />
       <Shelf title="Throwback Radio" items={trackItems(throwback.data)} state={throwback} onSeeAll={() => onOpen(radio.radioCollection(THROWBACK))} />
       <Shelf title="From the Vault" items={trackItems(vault.data)} state={vault} onSeeAll={() => onOpen(eraCollection(archive.ERAS[2]))} />

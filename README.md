@@ -10,6 +10,7 @@ Spotty only plays music that is free to stream legally, which is why there are n
 | --- | --- |
 | [Audius](https://audius.co) | Current music that artists publish themselves: charts, new releases, genres, playlists, artist pages. |
 | [Radio Browser](https://www.radio-browser.info) | Live internet radio from licensed broadcasters: hit radio, genres and decades. This is where chart music comes from. |
+| YouTube (optional) | Trending music videos by country and video search, in YouTube's official embedded player. Off until a free YouTube Data API key is added in Library > YouTube. Videos stay on screen and YouTube may show its own ads. |
 | [Internet Archive](https://archive.org) 78rpm collection | Professionally digitized records from 1900–1925 (US public domain), each with a photo of its label. |
 | [Live Music Archive](https://archive.org/details/etree) | Full concert recordings shared with the bands' permission. |
 

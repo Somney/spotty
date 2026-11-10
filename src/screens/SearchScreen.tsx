@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import * as archive from '../api/archive';
 import * as audius from '../api/audius';
 import * as radio from '../api/radio';
+import * as youtube from '../api/youtube';
 import { MOST_SHARED, UNDERGROUND, eraCollection, genreCollection } from '../collections';
 import { trackArt } from '../components/Artwork';
 import { SectionTitle, Shelf, StateNote } from '../components/Shelf';
@@ -23,6 +24,10 @@ function Results({ query, onOpen }: { query: string; onOpen: (c: Collection) => 
   const old = useAsync(() => archive.vintage({ query, rows: 12 }), `v:${query}`);
   const shows = useAsync(() => archive.concerts({ query, rows: 10 }), `c:${query}`);
   const lists = useAsync(() => audius.searchPlaylists(query), `p:${query}`);
+  const ytKey = youtube.useYouTubeKey();
+  // YouTube searches are rationed by Google, so one only runs when asked for.
+  const [ytQuery, setYtQuery] = useState('');
+  const yt = useAsync(() => (ytQuery ? youtube.search(ytQuery) : Promise.resolve([])), `yt:${ytQuery}`);
 
   const rows = (state: typeof songs, limit: number) =>
     state.data?.length ? (
@@ -51,6 +56,22 @@ function Results({ query, onOpen }: { query: string; onOpen: (c: Collection) => 
         <SectionTitle title="Songs" />
         {rows(songs, 10)}
       </View>
+      {ytKey ? (
+        <View style={{ marginTop: space.xl }}>
+          <SectionTitle title="YouTube" />
+          {ytQuery === query ? (
+            rows(yt, 10)
+          ) : (
+            <Pressable onPress={() => setYtQuery(query)} style={styles.ytRow} accessibilityRole="button">
+              <Ionicons name="logo-youtube" size={22} color={colors.accent} />
+              <Text style={styles.ytText} numberOfLines={1}>
+                Search YouTube for “{query}”
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+            </Pressable>
+          )}
+        </View>
+      ) : null}
       <Shelf title="Artists" items={cards(artists.data, 'person')} state={artists} />
       <Shelf title="Radio Stations" items={stationCards} state={stations} />
       {old.data?.length !== 0 ? (
@@ -78,6 +99,7 @@ export function SearchScreen({ onOpen }: { onOpen: (c: Collection) => void }) {
     { title: 'Radio', tiles: radio.RADIO_TAGS.map(radio.radioCollection) },
     { title: 'Genres', tiles: [UNDERGROUND, MOST_SHARED, ...audius.GENRES.map(genreCollection)] },
     { title: 'Decades', tiles: archive.ERAS.map(eraCollection) },
+    { title: 'Countries', tiles: radio.COUNTRIES.map(radio.countryCollection) },
   ];
 
   return (
@@ -145,6 +167,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   input: { flex: 1, color: colors.text, fontSize: 17, height: 40, outlineStyle: 'none' } as any,
+  ytRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginHorizontal: space.lg, paddingHorizontal: space.md, height: 52, borderRadius: radius.md, backgroundColor: colors.surface },
+  ytText: { flex: 1, color: colors.text, fontSize: 16 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: space.lg - 6 },
   tileWrap: { width: '50%', padding: 6 },
   tile: { height: 84, borderRadius: radius.md, padding: space.md, justifyContent: 'flex-end' },

@@ -1,6 +1,7 @@
 import * as archive from './api/archive';
 import * as audius from './api/audius';
 import * as radio from './api/radio';
+import * as youtube from './api/youtube';
 import { Collection, Track } from './types';
 
 /** Tracks for the collections that are fetched over the network. */
@@ -17,7 +18,9 @@ export function loadCollection(c: Collection): Promise<Track[]> {
       if (c.ref === 'allTime') return audius.trending({ time: 'allTime', limit: 50 });
       return c.ref === 'underground' ? audius.underground(50) : audius.mostShared(50);
     case 'radio':
-      return radio.stations(c.ref, 40);
+      return c.ref.startsWith('country:') ? radio.topInCountry(c.ref.slice(8), 40) : radio.stations(c.ref, 40);
+    case 'youtube':
+      return youtube.popular(c.ref, 50);
     case 'genre':
       return audius.trending({ genre: c.ref, time: 'month', limit: 50 });
     case 'era': {
